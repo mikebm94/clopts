@@ -56,7 +56,7 @@ find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
 
 		last_match = opt;
 		match_count++;
-		
+
 		if (strlen(opt->name) == name_len) {
 			exact_match = 1;
 			break;
@@ -114,7 +114,7 @@ parse_shortopt(struct clopts_control *ctl)
 
 	ctl->paramtype = PARAM_SHORTOPT;
 	ctl->optcode = *ctl->nextchar++;
-	
+
 	if (*ctl->nextchar == '\0') {
 		ctl->nextchar = NULL;
 		ctl->index++;
