@@ -37,49 +37,74 @@ find_shortopt(struct clopts_control *ctl)
 const struct option *
 find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
 {
-	const struct option **matches = NULL;
 	int match_count = 0;
 	int exact_match = 0;
+	const struct option *last_match = NULL;
+	const struct option **matches = malloc(sizeof(*matches));
+
+	/*
+	 * Use this to reallocate space for the 'matches' array. If we assign
+	 * to 'matches' directly and realloc() fails, we lose the pointer
+	 * and cannot free it.
+	 */
+	const struct option **matches_realloc = NULL;
 
 	const struct option *opt;
 	for (opt = ctl->options; opt->code != 0 || opt->name != NULL; opt++) {
 		if (opt->name == NULL || strncmp(opt->name, name, name_len) != 0)
 			continue;
 
-		matches = realloc(matches, sizeof(struct option *) * ++match_count);
-		matches[match_count - 1] = opt;
-
+		last_match = opt;
+		match_count++;
+		
 		if (strlen(opt->name) == name_len) {
 			exact_match = 1;
 			break;
 		}
+
+		if (matches == NULL)
+			continue;
+
+		matches_realloc = realloc(matches, sizeof(*matches) * match_count);
+
+		if (matches_realloc != NULL) {
+			matches = matches_realloc;
+			matches[match_count - 1] = opt;
+		} else {
+			free(matches);
+			matches = NULL;
+		}
 	}
+
+	opt = NULL;
 
 	if (match_count < 1) {
 		ctl->error = CLOPTS_UNKNOWN_OPT;
 		parse_error(ctl, "unrecognized option '--%.*s'", (int)name_len, name);
 		return NULL;
 	} else if (exact_match || match_count == 1) {
-		opt = matches[match_count - 1];
+		opt = last_match;
 		ctl->optcode = opt->code;
 		ctl->optind = (int)(opt - ctl->options);
+	} else {
+		ctl->error = CLOPTS_AMBIGUOUS_OPT;
+
+		if (matches != NULL && ctl->print_errors) {
+			int i;
+			fprintf(stderr, "%s: option '--%.*s' is ambiguous; possibilities:",
+					ctl->progname, (int)name_len, name);
+			for (i = 0; i < match_count; i++)
+				fprintf(stderr, " '--%s'", matches[i]->name);
+			fputc('\n', stderr);
+		} else {
+			parse_error(ctl, "option '--%.*s' is ambiguous", name_len, name);
+		}
+	}
+
+	if (matches != NULL)
 		free(matches);
-		return opt;
-	}
 
-	ctl->error = CLOPTS_AMBIGUOUS_OPT;
-
-	if (ctl->print_errors) {
-		int i;
-		fprintf(stderr, "%s: option '--%.*s' is amgiguous; possibilities:",
-		        ctl->progname, (int)name_len, name);
-		for (i = 0; i < match_count; i++)
-			fprintf(stderr, " '--%s'", matches[i]->name);
-		fputc('\n', stderr);
-	}
-
-	free(matches);
-	return NULL;
+	return opt;
 }
 
 void
