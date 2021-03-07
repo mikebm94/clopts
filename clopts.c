@@ -6,6 +6,20 @@
 #include "clopts.h"
 
 void
+clopts_init(struct clopts_control *ctl, const char *progname, int argc,
+            char **argv, const struct option *options, int print_errors)
+{
+	ctl->progname = progname ? progname : argv[0];
+	ctl->argc = argc;
+	ctl->argv = argv;
+	ctl->options = options;
+	ctl->print_errors = print_errors;
+
+	ctl->index = 1;
+	ctl->nextchar = NULL;
+}
+
+void
 parse_error(struct clopts_control *ctl, const char *fmt, ...)
 {
 	if (ctl->print_errors) {
@@ -32,6 +46,37 @@ find_shortopt(struct clopts_control *ctl)
 	ctl->error = CLOPTS_UNKNOWN_OPT;
 	parse_error(ctl, "unrecognized option '%c'", ctl->optcode);
 	return NULL;
+}
+
+void
+parse_shortopt(struct clopts_control *ctl)
+{
+	const struct option *opt;
+
+	ctl->paramtype = PARAM_SHORTOPT;
+	ctl->optcode = *ctl->nextchar++;
+
+	if (*ctl->nextchar == '\0') {
+		ctl->nextchar = NULL;
+		ctl->index++;
+	}
+
+	opt = find_shortopt(ctl);
+	if (opt == NULL || opt->argtype == ARG_NONE)
+		return;
+
+	if (ctl->nextchar != NULL) {
+		ctl->optarg = ctl->nextchar;
+		ctl->nextchar = NULL;
+		ctl->index++;
+	} else if (opt->argtype == ARG_REQUIRED) {
+		if (ctl->index < ctl->argc) {
+			ctl->optarg = ctl->argv[ctl->index++];
+		} else {
+			ctl->error = CLOPTS_MISSING_ARG;
+			parse_error(ctl, "option '%c' requires an argument", ctl->optcode);
+		}
+	}
 }
 
 const struct option *
@@ -94,37 +139,6 @@ find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
 }
 
 void
-parse_shortopt(struct clopts_control *ctl)
-{
-	const struct option *opt;
-
-	ctl->paramtype = PARAM_SHORTOPT;
-	ctl->optcode = *ctl->nextchar++;
-
-	if (*ctl->nextchar == '\0') {
-		ctl->nextchar = NULL;
-		ctl->index++;
-	}
-
-	opt = find_shortopt(ctl);
-	if (opt == NULL || opt->argtype == ARG_NONE)
-		return;
-
-	if (ctl->nextchar != NULL) {
-		ctl->optarg = ctl->nextchar;
-		ctl->nextchar = NULL;
-		ctl->index++;
-	} else if (opt->argtype == ARG_REQUIRED) {
-		if (ctl->index < ctl->argc) {
-			ctl->optarg = ctl->argv[ctl->index++];
-		} else {
-			ctl->error = CLOPTS_MISSING_ARG;
-			parse_error(ctl, "option '%c' requires an argument", ctl->optcode);
-		}
-	}
-}
-
-void
 parse_longopt(struct clopts_control *ctl)
 {
 	size_t name_len;
@@ -164,20 +178,6 @@ parse_nonopt(struct clopts_control *ctl)
 {
 	ctl->optarg = ctl->argv[ctl->index++];
 	ctl->paramtype = PARAM_NONOPT;
-}
-
-void
-clopts_init(struct clopts_control *ctl, const char *progname, int argc,
-            char **argv, const struct option *options, int print_errors)
-{
-	ctl->progname = progname ? progname : argv[0];
-	ctl->argc = argc;
-	ctl->argv = argv;
-	ctl->options = options;
-	ctl->print_errors = print_errors;
-
-	ctl->index = 1;
-	ctl->nextchar = NULL;
 }
 
 int
