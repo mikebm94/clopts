@@ -37,21 +37,14 @@ find_shortopt(struct clopts_control *ctl)
 const struct option *
 find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
 {
-	int match_count = 0;
-	int exact_match = 0;
-	const struct option *last_match = NULL;
+	int match_count = 0, exact_match = 0;
+	const struct option *last_match = NULL, *opt = ctl->options;
 	const struct option **matches = malloc(sizeof(*matches));
-
-	/*
-	 * Use this to reallocate space for the 'matches' array. If we assign
-	 * to 'matches' directly and realloc() fails, we lose the pointer
-	 * and cannot free it.
-	 */
 	const struct option **matches_realloc = NULL;
 
-	const struct option *opt;
-	for (opt = ctl->options; opt->code != 0 || opt->name != NULL; opt++) {
-		if (opt->name == NULL || strncmp(opt->name, name, name_len) != 0)
+	for (; opt->code != 0 || opt->name != NULL; opt++) {
+		if (opt->name == NULL
+			|| strncmp(opt->name, name, name_len) != 0)
 			continue;
 
 		last_match = opt;
@@ -60,34 +53,29 @@ find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
 		if (strlen(opt->name) == name_len) {
 			exact_match = 1;
 			break;
+		} else if (matches == NULL) {
+			continue;
 		}
 
-		if (matches == NULL)
-			continue;
-
 		matches_realloc = realloc(matches, sizeof(*matches) * match_count);
-
 		if (matches_realloc != NULL) {
 			matches = matches_realloc;
-			matches[match_count - 1] = opt;
+			matches[match_count - 1] = last_match;
 		} else {
 			free(matches);
 			matches = NULL;
 		}
 	}
 
-	opt = NULL;
-
-	if (match_count < 1) {
+	if (exact_match || match_count == 1) {
+		ctl->optcode = last_match->code;
+		ctl->optind = (int)(last_match - ctl->options);
+	} else if (match_count < 1) {
 		ctl->error = CLOPTS_UNKNOWN_OPT;
 		parse_error(ctl, "unrecognized option '--%.*s'", (int)name_len, name);
-		return NULL;
-	} else if (exact_match || match_count == 1) {
-		opt = last_match;
-		ctl->optcode = opt->code;
-		ctl->optind = (int)(opt - ctl->options);
 	} else {
 		ctl->error = CLOPTS_AMBIGUOUS_OPT;
+		last_match = NULL;
 
 		if (matches != NULL && ctl->print_errors) {
 			int i;
@@ -101,10 +89,8 @@ find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
 		}
 	}
 
-	if (matches != NULL)
-		free(matches);
-
-	return opt;
+	free(matches);
+	return last_match;
 }
 
 void
