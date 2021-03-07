@@ -173,11 +173,19 @@ parse_longopt(struct clopts_control *ctl)
 	}
 }
 
-void
+int
 parse_nonopt(struct clopts_control *ctl)
 {
-	ctl->optarg = ctl->argv[ctl->index++];
-	ctl->paramtype = PARAM_NONOPT;
+	int nonopt_index = ctl->index++;
+	char *nonopt = ctl->argv[nonopt_index];
+	int r = clopts_parse(ctl);
+
+	int i;
+	for (i = nonopt_index; i < ctl->index - 1; i++)
+		ctl->argv[i] = ctl->argv[i + 1];
+	ctl->argv[--ctl->index] = nonopt;
+
+	return r;
 }
 
 int
@@ -208,7 +216,7 @@ clopts_parse(struct clopts_control *ctl)
 			return 0;
 		}
 	} else {
-		parse_nonopt(ctl);
+		return parse_nonopt(ctl);
 	}
 
 	return 1;
