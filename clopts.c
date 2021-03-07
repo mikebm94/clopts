@@ -200,11 +200,13 @@ clopts_parse(struct clopts_control *ctl)
 
 	if (ctl->nextchar != NULL) {
 		parse_shortopt(ctl);
-	} else if (strlen(param) > 2 && strncmp(param, "--", 2) == 0) {
-		parse_longopt(ctl);
-	} else if (strcmp(param, "--") == 0) {
-		ctl->index++;
-		return 0;
+	} else if (strncmp(param, "--", 2) == 0) {
+		if (strlen(param) > 2) {
+			parse_longopt(ctl);
+		} else {
+			ctl->index++;
+			return 0;
+		}
 	} else {
 		parse_nonopt(ctl);
 	}
