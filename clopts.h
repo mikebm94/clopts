@@ -24,6 +24,11 @@ typedef enum {
 	PARAM_LONGOPT
 } parameter_type;
 
+typedef enum {
+	PARSE_PERMUTE,
+	PARSE_KEEP_ORDER
+} parse_mode;
+
 struct option {
 	int code;
 	const char *name;
@@ -35,6 +40,7 @@ struct clopts_control {
 	int argc;
 	char **argv;
 	const struct option *options;
+	parse_mode mode;
 	int print_errors;
 
 	int index;
@@ -49,7 +55,7 @@ struct clopts_control {
 
 void clopts_init(
 	struct clopts_control *ctl, const char *progname, int argc, char **argv,
-	const struct option * options, int print_errors);
+	const struct option * options, parse_mode mode, int print_errors);
 
 int clopts_parse(struct clopts_control *ctl);
 

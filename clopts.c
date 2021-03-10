@@ -7,12 +7,14 @@
 
 void
 clopts_init(struct clopts_control *ctl, const char *progname, int argc,
-            char **argv, const struct option *options, int print_errors)
+            char **argv, const struct option *options, parse_mode mode,
+			int print_errors)
 {
 	ctl->progname = progname ? progname : argv[0];
 	ctl->argc = argc;
 	ctl->argv = argv;
 	ctl->options = options;
+	ctl->mode = mode;
 	ctl->print_errors = print_errors;
 
 	ctl->index = 1;
@@ -176,16 +178,22 @@ parse_longopt(struct clopts_control *ctl)
 int
 parse_nonopt(struct clopts_control *ctl)
 {
-	int nonopt_index = ctl->index++;
-	char *nonopt = ctl->argv[nonopt_index];
-	int r = clopts_parse(ctl);
+	if (ctl->mode == PARSE_KEEP_ORDER) {
+		ctl->paramtype = PARAM_NONOPT;
+		ctl->optarg = ctl->argv[ctl->index++];
+		return 1;
+	} else {
+		int nonopt_index = ctl->index++;
+		char *nonopt = ctl->argv[nonopt_index];
+		int r = clopts_parse(ctl);
 
-	int i;
-	for (i = nonopt_index; i < ctl->index - 1; i++)
-		ctl->argv[i] = ctl->argv[i + 1];
-	ctl->argv[--ctl->index] = nonopt;
+		int i;
+		for (i = nonopt_index; i < ctl->index - 1; i++)
+			ctl->argv[i] = ctl->argv[i + 1];
+		ctl->argv[--ctl->index] = nonopt;
 
-	return r;
+		return r;
+	}
 }
 
 int
