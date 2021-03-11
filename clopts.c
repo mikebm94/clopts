@@ -26,7 +26,7 @@ parse_error(struct clopts_control *ctl, const char *fmt, ...)
 {
 	if (ctl->print_errors) {
 		va_list argp;
-		fprintf(stderr, "%s: ", ctl->progname);
+		fprintf(stderr, "%s%s", ctl->progname, *ctl->progname ? ": " : "");
 		va_start(argp, fmt);
 		vfprintf(stderr, fmt, argp);
 		va_end(argp);
@@ -126,8 +126,8 @@ find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
 
 		if (matches != NULL && ctl->print_errors) {
 			int i;
-			fprintf(stderr, "%s: option '--%.*s' is ambiguous; possibilities:",
-					ctl->progname, (int)name_len, name);
+			parse_error(ctl, "option '--%.*s' is ambiguous; possibilities:",
+			            (int)name_len, name);
 			for (i = 0; i < match_count; i++)
 				fprintf(stderr, " '--%s'", matches[i]->name);
 			fputc('\n', stderr);
