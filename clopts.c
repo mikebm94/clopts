@@ -30,7 +30,6 @@ parse_error(struct clopts_control *ctl, const char *fmt, ...)
 		va_start(argp, fmt);
 		vfprintf(stderr, fmt, argp);
 		va_end(argp);
-		fputc('\n', stderr);
 	}
 }
 
@@ -46,7 +45,7 @@ find_shortopt(struct clopts_control *ctl)
 	}
 
 	ctl->error = CLOPTS_UNKNOWN_OPT;
-	parse_error(ctl, "unrecognized option '%c'", ctl->optcode);
+	parse_error(ctl, "unrecognized option '%c'\n", ctl->optcode);
 	return NULL;
 }
 
@@ -76,7 +75,8 @@ parse_shortopt(struct clopts_control *ctl)
 			ctl->optarg = ctl->argv[ctl->index++];
 		} else {
 			ctl->error = CLOPTS_MISSING_ARG;
-			parse_error(ctl, "option '%c' requires an argument", ctl->optcode);
+			parse_error(ctl, "option '%c' requires an argument\n",
+			            ctl->optcode);
 		}
 	}
 }
@@ -119,7 +119,7 @@ find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
 		ctl->optind = (int)(last_match - ctl->options);
 	} else if (match_count < 1) {
 		ctl->error = CLOPTS_UNKNOWN_OPT;
-		parse_error(ctl, "unrecognized option '--%.*s'", (int)name_len, name);
+		parse_error(ctl, "unrecognized option '--%.*s'\n", (int)name_len, name);
 	} else {
 		ctl->error = CLOPTS_AMBIGUOUS_OPT;
 		last_match = NULL;
@@ -132,7 +132,7 @@ find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
 				fprintf(stderr, " '--%s'", matches[i]->name);
 			fputc('\n', stderr);
 		} else {
-			parse_error(ctl, "option '--%.*s' is ambiguous", name_len, name);
+			parse_error(ctl, "option '--%.*s' is ambiguous\n", name_len, name);
 		}
 	}
 
@@ -162,14 +162,14 @@ parse_longopt(struct clopts_control *ctl)
 
 	if (opt->argtype == ARG_NONE && ctl->optarg != NULL) {
 		ctl->error = CLOPTS_UNEXPECTED_ARG;
-		parse_error(ctl, "option '--%.*s' doesn't accept an argument",
+		parse_error(ctl, "option '--%.*s' doesn't accept an argument\n",
 		            (int)name_len, name_begin);
 	} else if (opt->argtype == ARG_REQUIRED && ctl->optarg == NULL) {
 		if (ctl->index < ctl->argc) {
 			ctl->optarg = ctl->argv[ctl->index++];
 		} else {
 			ctl->error = CLOPTS_MISSING_ARG;
-			parse_error(ctl, "option '--%.*s' requires an argument",
+			parse_error(ctl, "option '--%.*s' requires an argument\n",
 			            (int)name_len, name_begin);
 		}
 	}
