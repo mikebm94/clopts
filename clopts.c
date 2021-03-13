@@ -8,7 +8,7 @@
 void
 clopts_init(struct clopts_control *ctl, const char *progname, int argc,
             char **argv, const struct option *options, parse_mode mode,
-			int print_errors)
+            int print_errors)
 {
 	ctl->progname = progname ? progname : argv[0];
 	ctl->argc = argc;
@@ -25,11 +25,14 @@ void
 parse_error(struct clopts_control *ctl, const char *fmt, ...)
 {
 	if (ctl->print_errors) {
-		va_list argp;
-		fprintf(stderr, "%s%s", ctl->progname, *ctl->progname ? ": " : "");
-		va_start(argp, fmt);
-		vfprintf(stderr, fmt, argp);
-		va_end(argp);
+		va_list args;
+		va_start(args, fmt);
+
+		fprintf(stderr, "%s%s", ctl->progname,
+		        *ctl->progname ? ": " : "");
+		vfprintf(stderr, fmt, args);
+
+		va_end(args);
 	}
 }
 
@@ -91,7 +94,7 @@ find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
 
 	for (; opt->code != 0 || opt->name != NULL; opt++) {
 		if (opt->name == NULL
-			|| strncmp(opt->name, name, name_len) != 0)
+		    || strncmp(opt->name, name, name_len) != 0)
 			continue;
 
 		last_match = opt;
@@ -104,7 +107,8 @@ find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
 			continue;
 		}
 
-		matches_realloc = realloc(matches, sizeof(*matches) * match_count);
+		matches_realloc = realloc(matches,
+		                          sizeof(*matches) * match_count);
 		if (matches_realloc != NULL) {
 			matches = matches_realloc;
 			matches[match_count - 1] = last_match;
@@ -119,20 +123,22 @@ find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
 		ctl->optind = (int)(last_match - ctl->options);
 	} else if (match_count < 1) {
 		ctl->error = CLOPTS_UNKNOWN_OPT;
-		parse_error(ctl, "unrecognized option '--%.*s'\n", (int)name_len, name);
+		parse_error(ctl, "unrecognized option '--%.*s'\n",
+		            (int)name_len, name);
 	} else {
 		ctl->error = CLOPTS_AMBIGUOUS_OPT;
 		last_match = NULL;
 
 		if (matches != NULL && ctl->print_errors) {
 			int i;
-			parse_error(ctl, "option '--%.*s' is ambiguous; possibilities:",
-			            (int)name_len, name);
+			parse_error(ctl, "option '--%.*s' is ambiguous; "
+			            "possibilities:", (int)name_len, name);
 			for (i = 0; i < match_count; i++)
 				fprintf(stderr, " '--%s'", matches[i]->name);
 			fputc('\n', stderr);
 		} else {
-			parse_error(ctl, "option '--%.*s' is ambiguous\n", name_len, name);
+			parse_error(ctl, "option '--%.*s' is ambiguous\n",
+			            name_len, name);
 		}
 	}
 
@@ -152,7 +158,9 @@ parse_longopt(struct clopts_control *ctl)
 
 	name_begin = ctl->argv[ctl->index++] + 2;
 	name_end = strchr(name_begin, '=');
-	name_len = name_end ? (size_t)(name_end - name_begin) : strlen(name_begin);
+	name_len = name_end
+	           ? (size_t)(name_end - name_begin)
+	           : strlen(name_begin);
 
 	opt = find_longopt(ctl, name_begin, name_len);
 	if (opt == NULL)
@@ -169,8 +177,8 @@ parse_longopt(struct clopts_control *ctl)
 			ctl->optarg = ctl->argv[ctl->index++];
 		} else {
 			ctl->error = CLOPTS_MISSING_ARG;
-			parse_error(ctl, "option '--%.*s' requires an argument\n",
-			            (int)name_len, name_begin);
+			parse_error(ctl, "option '--%.*s' requires an "
+			            "argument\n", (int)name_len, name_begin);
 		}
 	}
 }
