@@ -5,6 +5,11 @@
 
 #include "clopts.h"
 
+struct option_node {
+	const struct option *opt;
+	struct option_node *next;
+};
+
 void
 clopts_init(struct clopts_control *ctl, const char *progname, int argc,
             char **argv, const struct option *options, parse_mode mode,
@@ -87,62 +92,68 @@ parse_shortopt(struct clopts_control *ctl)
 static const struct option *
 find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
 {
-	int match_count = 0, exact_match = 0;
-	const struct option *last_match = NULL, *opt = ctl->options;
-	const struct option **matches = malloc(sizeof(*matches));
-	const struct option **matches_realloc = NULL;
+	int is_ambig = 0;
+	int track_all_matches = 1;
+	struct option_node *matches = NULL;
+	const struct option *last_match = NULL;
+	const struct option *opt;
 
-	for (; opt->code != 0 || opt->name != NULL; opt++) {
-		if (opt->name == NULL
-		    || strncmp(opt->name, name, name_len) != 0)
+	for (opt = ctl->options; opt->name || opt->code; opt++) {
+		if (!opt->name || strncmp(opt->name, name, name_len))
 			continue;
-
-		last_match = opt;
-		match_count++;
 
 		if (strlen(opt->name) == name_len) {
-			exact_match = 1;
+			is_ambig = 0;
+			last_match = opt;
 			break;
-		} else if (matches == NULL) {
-			continue;
+		} else if (last_match != NULL) {
+			is_ambig = 1;
 		}
 
-		matches_realloc = realloc(matches,
-		                          sizeof(*matches) * match_count);
-		if (matches_realloc != NULL) {
-			matches = matches_realloc;
-			matches[match_count - 1] = last_match;
-		} else {
-			free(matches);
-			matches = NULL;
+		last_match = opt;
+
+		if (track_all_matches) {
+			struct option_node *match = malloc(sizeof(*match));
+
+			if (match == NULL) {
+				track_all_matches = 0;
+			} else {
+				match->opt = opt;
+				match->next = matches;
+				matches = match;
+			}
 		}
 	}
 
-	if (exact_match || match_count == 1) {
-		ctl->optcode = last_match->code;
-		ctl->optind = (int)(last_match - ctl->options);
-	} else if (match_count < 1) {
+	if (last_match == NULL) {
 		ctl->error = CLOPTS_UNKNOWN_OPT;
-		parse_error(ctl, "unrecognized option '--%.*s'\n",
-		            (int)name_len, name);
-	} else {
+		parse_error(ctl, "unknown option '--%s'\n", name);
+		return NULL;
+	} else if (is_ambig) {
 		ctl->error = CLOPTS_AMBIGUOUS_OPT;
-		last_match = NULL;
+		parse_error(ctl, "option '--%s' is ambiguous%s", name,
+			    track_all_matches ? "; possibilities:" : "");
 
-		if (matches != NULL && ctl->print_errors) {
-			int i;
-			parse_error(ctl, "option '--%.*s' is ambiguous; "
-			            "possibilities:", (int)name_len, name);
-			for (i = 0; i < match_count; i++)
-				fprintf(stderr, " '--%s'", matches[i]->name);
-			fputc('\n', stderr);
-		} else {
-			parse_error(ctl, "option '--%.*s' is ambiguous\n",
-			            name_len, name);
+		while (matches != NULL) {
+			struct option_node *next_match = matches->next;
+			if (track_all_matches)
+				fprintf(stderr, " '--%s'", matches->opt->name);
+			free(matches);
+			matches = next_match;
 		}
+
+		fputc('\n', stderr);
+		return NULL;
 	}
 
-	free(matches);
+	while (matches != NULL) {
+		struct option_node *next_match = matches->next;
+		free(matches);
+		matches = next_match;
+	}
+
+	ctl->optcode = last_match->code;
+	ctl->optind = (int)(last_match - ctl->options);
 	return last_match;
 }
 
