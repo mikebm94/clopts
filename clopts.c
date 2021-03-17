@@ -21,7 +21,7 @@ clopts_init(struct clopts_control *ctl, const char *progname, int argc,
 	ctl->nextchar = NULL;
 }
 
-void
+static void
 parse_error(struct clopts_control *ctl, const char *fmt, ...)
 {
 	if (ctl->print_errors) {
@@ -36,7 +36,7 @@ parse_error(struct clopts_control *ctl, const char *fmt, ...)
 	}
 }
 
-const struct option *
+static const struct option *
 find_shortopt(struct clopts_control *ctl)
 {
 	const struct option *opt;
@@ -52,7 +52,7 @@ find_shortopt(struct clopts_control *ctl)
 	return NULL;
 }
 
-void
+static void
 parse_shortopt(struct clopts_control *ctl)
 {
 	const struct option *opt;
@@ -84,7 +84,7 @@ parse_shortopt(struct clopts_control *ctl)
 	}
 }
 
-const struct option *
+static const struct option *
 find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
 {
 	int match_count = 0, exact_match = 0;
@@ -146,7 +146,7 @@ find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
 	return last_match;
 }
 
-void
+static void
 parse_longopt(struct clopts_control *ctl)
 {
 	size_t name_len;
@@ -183,7 +183,7 @@ parse_longopt(struct clopts_control *ctl)
 	}
 }
 
-int
+static int
 parse_nonopt(struct clopts_control *ctl)
 {
 	if (ctl->mode == PARSE_KEEP_ORDER) {
