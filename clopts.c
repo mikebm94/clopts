@@ -90,10 +90,11 @@ parse_shortopt(struct clopts_control *ctl)
 }
 
 static const struct option *
-find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
+find_longopt(struct clopts_control *ctl, const char *name)
 {
 	int is_ambig = 0;
 	int track_all_matches = 1;
+	size_t name_len = strlen(name);
 	struct option_node *matches = NULL;
 	const struct option *last_match = NULL;
 	const struct option *opt;
@@ -160,36 +161,33 @@ find_longopt(struct clopts_control *ctl, const char *name, size_t name_len)
 static void
 parse_longopt(struct clopts_control *ctl)
 {
-	size_t name_len;
-	char *name_begin;
-	char *name_end;
+	char *name, *name_end;
 	const struct option *opt;
 
 	ctl->paramtype = PARAM_LONGOPT;
+	name = ctl->argv[ctl->index++] + 2;
+	name_end = strchr(name, '=');
 
-	name_begin = ctl->argv[ctl->index++] + 2;
-	name_end = strchr(name_begin, '=');
-	name_len = name_end
-	           ? (size_t)(name_end - name_begin)
-	           : strlen(name_begin);
+	if (name_end != NULL) {
+		*name_end = '\0';
+		ctl->optarg = name_end + 1;
+	}
 
-	opt = find_longopt(ctl, name_begin, name_len);
+	opt = find_longopt(ctl, name);
 	if (opt == NULL)
 		return;
 
-	ctl->optarg = name_end ? name_end + 1 : NULL;
-
 	if (opt->argtype == ARG_NONE && ctl->optarg != NULL) {
 		ctl->error = CLOPTS_UNEXPECTED_ARG;
-		parse_error(ctl, "option '--%.*s' doesn't accept an argument\n",
-		            (int)name_len, name_begin);
+		parse_error(ctl, "option '--%s' doesn't accept an argument\n",
+		            name);
 	} else if (opt->argtype == ARG_REQUIRED && ctl->optarg == NULL) {
 		if (ctl->index < ctl->argc) {
 			ctl->optarg = ctl->argv[ctl->index++];
 		} else {
 			ctl->error = CLOPTS_MISSING_ARG;
-			parse_error(ctl, "option '--%.*s' requires an "
-			            "argument\n", (int)name_len, name_begin);
+			parse_error(ctl, "option '--%s' requires "
+			            "an argument\n", name);
 		}
 	}
 }
