@@ -48,6 +48,7 @@ struct clopts_control {
 
 	int optcode;
 	int optind;
+	char *optname;
 	char *optarg;
 	parameter_type paramtype;
 	int error;

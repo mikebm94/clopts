@@ -90,17 +90,17 @@ parse_shortopt(struct clopts_control *ctl)
 }
 
 static const struct option *
-find_longopt(struct clopts_control *ctl, const char *name)
+find_longopt(struct clopts_control *ctl)
 {
 	int is_ambig = 0;
 	int track_all_matches = 1;
-	size_t name_len = strlen(name);
+	size_t name_len = strlen(ctl->optname);
 	struct option_node *matches = NULL;
 	const struct option *last_match = NULL;
 	const struct option *opt;
 
 	for (opt = ctl->options; opt->name || opt->code; opt++) {
-		if (!opt->name || strncmp(opt->name, name, name_len))
+		if (!opt->name || strncmp(opt->name, ctl->optname, name_len))
 			continue;
 
 		if (strlen(opt->name) == name_len) {
@@ -128,11 +128,11 @@ find_longopt(struct clopts_control *ctl, const char *name)
 
 	if (last_match == NULL) {
 		ctl->error = CLOPTS_UNKNOWN_OPT;
-		parse_error(ctl, "unknown option '--%s'\n", name);
+		parse_error(ctl, "unknown option '--%s'\n", ctl->optname);
 		return NULL;
 	} else if (is_ambig) {
 		ctl->error = CLOPTS_AMBIGUOUS_OPT;
-		parse_error(ctl, "option '--%s' is ambiguous%s", name,
+		parse_error(ctl, "option '--%s' is ambiguous%s", ctl->optname,
 			    track_all_matches ? "; possibilities:" : "");
 
 		while (matches != NULL) {
@@ -161,33 +161,33 @@ find_longopt(struct clopts_control *ctl, const char *name)
 static void
 parse_longopt(struct clopts_control *ctl)
 {
-	char *name, *name_end;
+	char *name_end;
 	const struct option *opt;
 
 	ctl->paramtype = PARAM_LONGOPT;
-	name = ctl->argv[ctl->index++] + 2;
-	name_end = strchr(name, '=');
+	ctl->optname = ctl->argv[ctl->index++] + 2;
+	name_end = strchr(ctl->optname, '=');
 
 	if (name_end != NULL) {
 		*name_end = '\0';
 		ctl->optarg = name_end + 1;
 	}
 
-	opt = find_longopt(ctl, name);
+	opt = find_longopt(ctl);
 	if (opt == NULL)
 		return;
 
 	if (opt->argtype == ARG_NONE && ctl->optarg != NULL) {
 		ctl->error = CLOPTS_UNEXPECTED_ARG;
 		parse_error(ctl, "option '--%s' doesn't accept an argument\n",
-		            name);
+		            ctl->optname);
 	} else if (opt->argtype == ARG_REQUIRED && ctl->optarg == NULL) {
 		if (ctl->index < ctl->argc) {
 			ctl->optarg = ctl->argv[ctl->index++];
 		} else {
 			ctl->error = CLOPTS_MISSING_ARG;
 			parse_error(ctl, "option '--%s' requires "
-			            "an argument\n", name);
+			            "an argument\n", ctl->optname);
 		}
 	}
 }
