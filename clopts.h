@@ -53,9 +53,9 @@ struct clopts_control {
 	int error;
 };
 
-void clopts_init(
-	struct clopts_control *ctl, const char *progname, int argc, char **argv,
-	const struct option * options, parse_mode mode, int print_errors);
+void clopts_init(struct clopts_control *ctl, const char *progname, int argc,
+                 char **argv, const struct option *options, parse_mode mode,
+                 int print_errors);
 
 int clopts_parse(struct clopts_control *ctl);
 
