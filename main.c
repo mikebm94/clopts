@@ -198,6 +198,7 @@ print_normalized(const char *param)
 
 	*buffer_ptr = '\0';
 	printf(" '%s'", buffer);
+	free(buffer);
 }
 
 int
