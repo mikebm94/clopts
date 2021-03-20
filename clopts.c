@@ -52,7 +52,7 @@ find_shortopt(struct clopts_control *ctl)
 		}
 	}
 
-	ctl->error = CLOPTS_UNKNOWN_OPT;
+	ctl->error = CLOPTS_OPT_UNKNOWN;
 	parse_error(ctl, "unrecognized option '%c'\n", ctl->optcode);
 	return NULL;
 }
@@ -82,7 +82,7 @@ parse_shortopt(struct clopts_control *ctl)
 		if (ctl->index < ctl->argc) {
 			ctl->optarg = ctl->argv[ctl->index++];
 		} else {
-			ctl->error = CLOPTS_MISSING_ARG;
+			ctl->error = CLOPTS_ARG_MISSING;
 			parse_error(ctl, "option '%c' requires an argument\n",
 			            ctl->optcode);
 		}
@@ -127,11 +127,11 @@ find_longopt(struct clopts_control *ctl)
 	}
 
 	if (last_match == NULL) {
-		ctl->error = CLOPTS_UNKNOWN_OPT;
+		ctl->error = CLOPTS_OPT_UNKNOWN;
 		parse_error(ctl, "unknown option '--%s'\n", ctl->optname);
 		return NULL;
 	} else if (is_ambig) {
-		ctl->error = CLOPTS_AMBIGUOUS_OPT;
+		ctl->error = CLOPTS_OPT_AMBIGUOUS;
 		parse_error(ctl, "option '--%s' is ambiguous%s", ctl->optname,
 			    track_all_matches ? "; possibilities:" : "");
 
@@ -178,14 +178,14 @@ parse_longopt(struct clopts_control *ctl)
 		return;
 
 	if (opt->argtype == ARG_NONE && ctl->optarg != NULL) {
-		ctl->error = CLOPTS_UNEXPECTED_ARG;
+		ctl->error = CLOPTS_ARG_UNEXPECTED;
 		parse_error(ctl, "option '--%s' doesn't accept an argument\n",
 		            ctl->optname);
 	} else if (opt->argtype == ARG_REQUIRED && ctl->optarg == NULL) {
 		if (ctl->index < ctl->argc) {
 			ctl->optarg = ctl->argv[ctl->index++];
 		} else {
-			ctl->error = CLOPTS_MISSING_ARG;
+			ctl->error = CLOPTS_ARG_MISSING;
 			parse_error(ctl, "option '--%s' requires "
 			            "an argument\n", ctl->optname);
 		}
